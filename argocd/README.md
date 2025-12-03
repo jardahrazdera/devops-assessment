@@ -22,8 +22,6 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 ## Deploy Application
 
 ```bash
-# Update the repoURL in application.yaml with your GitHub repository URL
-
 # Apply the Application CRD
 kubectl apply -f argocd/application.yaml
 
