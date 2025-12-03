@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: devops-assessment:v1
+        image: devops-assessment:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
