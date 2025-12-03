@@ -178,6 +178,17 @@ docker-compose -f monitoring/docker-compose.monitoring.yml up -d
 
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3000 (admin/admin)
+- **Pre-configured Dashboard**: http://localhost:3000/d/devops-app-metrics
+
+### Pre-configured Dashboard
+
+Application metrics dashboard includes:
+- Request Rate (req/sec) - Real-time request throughput
+- Response Time (p50/p95) - Latency percentiles
+- Total Requests - Cumulative request counter
+- Active Requests - Current concurrent requests
+- HTTP Status Codes - Response status breakdown
+- Python Process Info - Memory and CPU usage
 
 ### Available Metrics
 
