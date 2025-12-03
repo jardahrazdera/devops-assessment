@@ -69,7 +69,7 @@ graph TB
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR-USERNAME/devops-assessment.git
+git clone https://github.com/jardahrazdera/devops-assessment.git
 cd devops-assessment
 
 # Run locally with Docker Compose

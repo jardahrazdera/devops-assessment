@@ -7,7 +7,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/YOUR-USERNAME/devops-assessment
+    repoURL: https://github.com/jardahrazdera/devops-assessment
     targetRevision: HEAD
     path: k8s
 
