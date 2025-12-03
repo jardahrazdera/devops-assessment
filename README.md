@@ -265,7 +265,10 @@ devops-assessment/
 │   ├── prometheus/
 │   │   └── prometheus.yml             # Prometheus config
 │   ├── grafana/
-│   │   └── datasource.yml             # Prometheus datasource
+│   │   ├── datasource.yml             # Prometheus datasource
+│   │   ├── dashboard-provider.yml     # Dashboard provisioning
+│   │   └── dashboards/
+│   │       └── app-metrics.json       # Application metrics dashboard
 │   └── docker-compose.monitoring.yml  # Monitoring stack
 │
 ├── scripts/                           # Automation scripts
