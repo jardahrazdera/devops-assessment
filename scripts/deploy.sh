@@ -22,9 +22,11 @@ echo ""
 echo -e "${YELLOW}[0/6] Checking k3d cluster...${NC}"
 if command -v k3d &> /dev/null; then
     if ! k3d cluster list | grep -q "^${CLUSTER_NAME}"; then
-        echo -e "${BLUE}Creating k3d cluster with NodePort mapping...${NC}"
+        echo -e "${BLUE}Creating k3d cluster with NodePort mappings...${NC}"
         k3d cluster create ${CLUSTER_NAME} \
             -p "30080:30080@loadbalancer" \
+            -p "30090:30090@loadbalancer" \
+            -p "30030:30030@loadbalancer" \
             --wait
         echo -e "${GREEN}✓ k3d cluster created${NC}"
     else
@@ -100,6 +102,12 @@ kubectl apply -f k8s/service.yaml
 echo -e "${BLUE}  - Applying Deployment...${NC}"
 kubectl apply -f k8s/deployment.yaml
 
+echo -e "${GREEN}✓ Application resources deployed${NC}"
+
+# Deploy monitoring stack
+echo -e "${BLUE}  - Deploying monitoring stack...${NC}"
+kubectl apply -f k8s/monitoring/
+
 echo -e "${GREEN}✓ All resources deployed${NC}"
 
 # Step 6: Wait for rollout
@@ -122,11 +130,15 @@ echo ""
 kubectl get all -n ${NAMESPACE}
 echo ""
 echo -e "${GREEN}Access application:${NC}"
-echo "  NodePort:     http://localhost:30080/health"
+echo "  Application:  http://localhost:30080/health"
+echo "  API Docs:     http://localhost:30080/docs"
 echo "  Metrics:      http://localhost:30080/metrics"
-echo "  Port-forward: kubectl port-forward -n ${NAMESPACE} svc/devops-app-service 8080:80"
+echo ""
+echo -e "${GREEN}Access monitoring:${NC}"
+echo "  Prometheus:   http://localhost:30090"
+echo "  Grafana:      http://localhost:30030 (admin/admin)"
 echo ""
 echo -e "${GREEN}Useful commands:${NC}"
-echo "  Logs:    kubectl logs -n ${NAMESPACE} -l app=devops-app -f"
-echo "  Status:  kubectl get pods -n ${NAMESPACE}"
-echo "  Delete:  kubectl delete -f k8s/"
+echo "  App logs:    kubectl logs -n ${NAMESPACE} -l app=devops-app -f"
+echo "  All pods:    kubectl get pods -A"
+echo "  Port-forward: kubectl port-forward -n ${NAMESPACE} svc/devops-app-service 8080:80"
