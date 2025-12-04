@@ -114,6 +114,8 @@ kubectl apply -f k8s/monitoring/prometheus-configmap.yaml
 kubectl apply -f k8s/monitoring/prometheus-deployment.yaml
 kubectl apply -f k8s/monitoring/prometheus-service.yaml
 kubectl apply -f k8s/monitoring/grafana-configmap.yaml
+kubectl apply -f k8s/monitoring/grafana-dashboard-provider.yaml
+kubectl apply -f k8s/monitoring/grafana-dashboard.yaml
 kubectl apply -f k8s/monitoring/grafana-deployment.yaml
 kubectl apply -f k8s/monitoring/grafana-service.yaml
 
