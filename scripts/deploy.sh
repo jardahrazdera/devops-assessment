@@ -105,8 +105,17 @@ kubectl apply -f k8s/deployment.yaml
 echo -e "${GREEN}✓ Application resources deployed${NC}"
 
 # Deploy monitoring stack
-echo -e "${BLUE}  - Deploying monitoring stack...${NC}"
-kubectl apply -f k8s/monitoring/
+echo -e "${BLUE}  - Deploying monitoring namespace...${NC}"
+kubectl apply -f k8s/monitoring/namespace.yaml
+sleep 2
+
+echo -e "${BLUE}  - Deploying Prometheus and Grafana...${NC}"
+kubectl apply -f k8s/monitoring/prometheus-configmap.yaml
+kubectl apply -f k8s/monitoring/prometheus-deployment.yaml
+kubectl apply -f k8s/monitoring/prometheus-service.yaml
+kubectl apply -f k8s/monitoring/grafana-configmap.yaml
+kubectl apply -f k8s/monitoring/grafana-deployment.yaml
+kubectl apply -f k8s/monitoring/grafana-service.yaml
 
 echo -e "${GREEN}✓ All resources deployed${NC}"
 
