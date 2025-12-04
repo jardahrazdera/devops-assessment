@@ -4,47 +4,69 @@ A production-ready FastAPI application demonstrating modern DevOps practices inc
 
 ## 🏗️ Architecture
 
+This project offers **two deployment options**:
+
+### Option 1: Docker Compose (Quick Local Development)
+
+Fast iteration for development with Docker Compose:
+- FastAPI application + Redis
+- Optional: Prometheus + Grafana monitoring (separate compose file)
+
+### Option 2: Kubernetes (Full Production-like Environment)
+
+Complete integrated stack in k3d cluster:
+- Application with health probes and resource limits
+- Prometheus monitoring
+- Grafana dashboards
+- ArgoCD for GitOps
+- Everything in Kubernetes
+
+---
+
+## 🎯 Kubernetes Architecture (Recommended)
+
 ```mermaid
 graph TB
     subgraph "GitHub"
-        REPO[GitHub Repository<br/>Source Code & K8s Manifests]
+        REPO[GitHub Repository<br/>Source Code & Manifests]
     end
 
-    subgraph "CI/CD Pipeline"
-        GHA[GitHub Actions<br/>Build, Test, Security Scan]
+    subgraph "CI/CD"
+        GHA[GitHub Actions<br/>Test, Build, Scan]
     end
 
-    subgraph "GitOps"
-        ARGOCD[ArgoCD<br/>Auto-Sync & Self-Heal]
-    end
+    subgraph "k3d Cluster"
+        subgraph "Namespace: argocd"
+            ARGOCD[ArgoCD<br/>GitOps Controller]
+        end
 
-    subgraph "Kubernetes Cluster k3d"
         subgraph "Namespace: devops-assessment"
-            DEPLOY[Deployment<br/>2 Replicas<br/>Health Probes<br/>Resource Limits]
+            DEPLOY[Deployment<br/>2 Replicas]
             SVC[Service<br/>NodePort 30080]
             CM[ConfigMap]
-            DEPLOY --> SVC
+            APP[FastAPI Pods]
+
             CM --> DEPLOY
+            DEPLOY --> APP
+            SVC --> APP
+        end
+
+        subgraph "Namespace: monitoring"
+            PROM[Prometheus<br/>NodePort 30090]
+            GRAFANA[Grafana<br/>NodePort 30030]
+
+            PROM --> GRAFANA
         end
     end
 
-    subgraph "Monitoring Stack"
-        PROM[Prometheus<br/>:9090]
-        GRAFANA[Grafana<br/>:3000]
-        GRAFANA --> PROM
-    end
-
-    subgraph "Application"
-        APP[FastAPI App<br/>/health<br/>/metrics<br/>/data]
-    end
-
-    REPO -->|Push Event| GHA
-    REPO -->|Webhook| ARGOCD
-    GHA -->|Build & Test<br/>Trivy Scan| REPO
-    ARGOCD -->|Apply Manifests| DEPLOY
-    DEPLOY --> APP
-    APP -->|Expose Metrics| PROM
-    SVC -->|NodePort| APP
+    DEV[Developer] -->|git push| REPO
+    REPO -->|Triggers| GHA
+    GHA -->|Build & Test| REPO
+    REPO -->|Watches| ARGOCD
+    ARGOCD -->|Auto-deploys| DEPLOY
+    APP -->|Exposes /metrics| PROM
+    USER[User] -->|Access| SVC
+    USER -->|Monitor| GRAFANA
 
     style REPO fill:#e1f5ff
     style GHA fill:#fff4e1
@@ -54,6 +76,64 @@ graph TB
     style PROM fill:#fff9c4
     style GRAFANA fill:#fff9c4
 ```
+
+### Deploy Everything with One Command
+
+```bash
+./scripts/deploy.sh latest
+```
+
+This deploys:
+- **Application** (2 replicas, health probes, resource limits)
+- **Prometheus** (metrics collection)
+- **Grafana** (visualization dashboards)
+- **k3d cluster** (with NodePort mappings)
+
+### Access URLs
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Application | http://localhost:30080/health | - |
+| API Docs | http://localhost:30080/docs | - |
+| Prometheus | http://localhost:30090 | - |
+| Grafana | http://localhost:30030 | admin/admin |
+
+### Optional: Add ArgoCD for GitOps
+
+```bash
+# Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Deploy via ArgoCD
+kubectl apply -f argocd/application.yaml
+```
+
+**ArgoCD provides:**
+- Automated Git-to-cluster sync
+- Self-healing (reverts manual changes)
+- Declarative deployments
+
+---
+
+## 📦 Docker Compose (Alternative for Local Dev)
+
+For quick local testing without Kubernetes:
+
+```bash
+# Start application
+docker-compose up -d
+
+# Optional: Start monitoring
+docker-compose -f monitoring/docker-compose.monitoring.yml up -d
+```
+
+**Access:**
+- App: http://localhost:8000
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+---
 
 ## 🚀 Quick Start
 
