@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+  namespace: monitoring
+data:
+  app-metrics.json: |
+    {
+      "uid": "devops-app-metrics",
+      "title": "DevOps Assessment - Application Metrics",
+        "tags": ["devops", "fastapi", "application"],
+        "timezone": "browser",
+        "schemaVersion": 38,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate (req/sec)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"devops-app\"}[1m])",
+                "legendFormat": "{{method}} {{handler}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "reqps", "label": "Requests/sec"},
+              {"format": "short"}
+            ],
+            "xaxis": {"show": true, "mode": "time"},
+            "lines": true,
+            "fill": 1,
+            "linewidth": 2,
+            "pointradius": 5,
+            "legend": {"show": true, "alignAsTable": true, "avg": true, "current": true, "max": true, "values": true}
+          },
+          {
+            "id": 2,
+            "title": "Response Time (seconds)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"devops-app\"}[1m]))",
+                "legendFormat": "p95",
+                "refId": "A"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"devops-app\"}[1m]))",
+                "legendFormat": "p50 (median)",
+                "refId": "B"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Duration"},
+              {"format": "short"}
+            ],
+            "xaxis": {"show": true, "mode": "time"},
+            "lines": true,
+            "fill": 1,
+            "linewidth": 2,
+            "legend": {"show": true, "alignAsTable": true, "avg": true, "current": true, "max": true, "values": true}
+          },
+          {
+            "id": 3,
+            "title": "Total Requests",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "sum(http_requests_total{job=\"devops-app\"})",
+                "refId": "A",
+                "legendFormat": "Total"
+              }
+            ],
+            "options": {
+              "graphMode": "area",
+              "colorMode": "value",
+              "textMode": "value"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 100, "color": "yellow"},
+                    {"value": 1000, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Active Requests",
+            "type": "gauge",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+            "targets": [
+              {
+                "expr": "http_requests_in_progress{job=\"devops-app\"}",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "showThresholdLabels": false,
+              "showThresholdMarkers": true
+            },
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 100,
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 50, "color": "yellow"},
+                    {"value": 80, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "HTTP Status Codes",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"devops-app\"}[1m])",
+                "legendFormat": "{{status}} - {{method}} {{handler}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "reqps", "label": "Requests/sec"},
+              {"format": "short"}
+            ],
+            "xaxis": {"show": true, "mode": "time"},
+            "lines": true,
+            "fill": 1,
+            "linewidth": 2,
+            "stack": true,
+            "legend": {"show": true, "alignAsTable": true, "values": true, "current": true}
+          },
+          {
+            "id": 6,
+            "title": "Python Process Info",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes{job=\"devops-app\"}",
+                "legendFormat": "Memory (MB)",
+                "refId": "A"
+              },
+              {
+                "expr": "process_cpu_seconds_total{job=\"devops-app\"}",
+                "legendFormat": "CPU Time (sec)",
+                "refId": "B"
+              }
+            ],
+            "options": {
+              "graphMode": "none",
+              "colorMode": "value",
+              "textMode": "value_and_name"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "decbytes"
+              },
+              "overrides": [
+                {
+                  "matcher": {"id": "byName", "options": "CPU Time (sec)"},
+                  "properties": [{"id": "unit", "value": "s"}]
+                }
+              ]
+            }
+          }
+        ]
+    }
