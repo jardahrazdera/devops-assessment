@@ -37,14 +37,14 @@ spec:
               key: environment
         - name: DATABASE_URL
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: database_url
+            secretKeyRef:
+              name: app-secret
+              key: DATABASE_URL
         - name: REDIS_URL
           valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: redis_url
+            secretKeyRef:
+              name: app-secret
+              key: REDIS_URL
         resources:
           requests:
             memory: "128Mi"
