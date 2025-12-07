@@ -6,6 +6,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
 import uuid
+import json
+import redis
 from pythonjsonlogger.json import JsonFormatter
 from contextvars import ContextVar
 
@@ -58,6 +60,23 @@ Instrumentator().instrument(app).expose(app)
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 db_conn = None
 
+# Redis connection
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_client = None
+
+def get_redis_connection():
+    """Get Redis connection with retry logic"""
+    global redis_client
+    if redis_client is None:
+        try:
+            redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+            redis_client.ping()
+            logger.info("Connected to Redis")
+        except Exception as e:
+            logger.warning(f"Redis connection failed: {e}")
+            redis_client = None
+    return redis_client
+
 def get_db_connection():
     """Get database connection with retry logic"""
     global db_conn
@@ -91,7 +110,23 @@ async def health_check():
 
 @app.get("/data")
 async def get_data():
-    """Retrieve all stored data from PostgreSQL"""
+    """Retrieve all stored data from PostgreSQL with Redis caching"""
+    CACHE_KEY = "data:all"
+    CACHE_TTL = 60  # Cache for 60 seconds
+
+    # Try to get from cache first
+    redis_conn = get_redis_connection()
+    if redis_conn:
+        try:
+            cached_data = redis_conn.get(CACHE_KEY)
+            if cached_data:
+                logger.info("GET /data - Cache HIT")
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.warning(f"Redis read error: {e}")
+
+    # Cache miss - fetch from database
+    logger.info("GET /data - Cache MISS, fetching from database")
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=503, detail="Database connection unavailable")
@@ -101,18 +136,29 @@ async def get_data():
             cur.execute("SELECT id, content, timestamp FROM data_items ORDER BY id")
             items = cur.fetchall()
 
-        logger.info(f"GET /data - Retrieved {len(items)} items")
-        return {
+        result = {
             "count": len(items),
             "data": [dict(item) for item in items]
         }
+
+        # Cache the result
+        if redis_conn:
+            try:
+                redis_conn.setex(CACHE_KEY, CACHE_TTL, json.dumps(result, default=str))
+                logger.info(f"GET /data - Cached {len(items)} items for {CACHE_TTL}s")
+            except Exception as e:
+                logger.warning(f"Redis write error: {e}")
+
+        return result
     except Exception as e:
         logger.error(f"GET /data - Error: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/data")
 async def create_data(item: dict):
-    """Store new data item in PostgreSQL"""
+    """Store new data item in PostgreSQL and invalidate cache"""
+    CACHE_KEY = "data:all"
+
     if not item:
         raise HTTPException(status_code=400, detail="Empty data not allowed")
 
@@ -128,6 +174,15 @@ async def create_data(item: dict):
             )
             result = cur.fetchone()
             conn.commit()
+
+        # Invalidate cache after successful write
+        redis_conn = get_redis_connection()
+        if redis_conn:
+            try:
+                redis_conn.delete(CACHE_KEY)
+                logger.info("POST /data - Cache invalidated")
+            except Exception as e:
+                logger.warning(f"Redis delete error: {e}")
 
         data_entry = dict(result)
         logger.info(f"POST /data - Created item with ID {data_entry['id']}")
