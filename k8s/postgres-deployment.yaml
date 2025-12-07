@@ -67,4 +67,5 @@ spec:
           periodSeconds: 5
       volumes:
       - name: postgres-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: postgres-pvc
