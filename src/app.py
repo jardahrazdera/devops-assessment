@@ -1,23 +1,55 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from prometheus_fastapi_instrumentator import Instrumentator
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+import uuid
+from pythonjsonlogger.json import JsonFormatter
+from contextvars import ContextVar
 
-# Configure structured logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Context variable for request ID
+request_id_context: ContextVar[str] = ContextVar("request_id", default=None)
+
+# Configure JSON structured logging
+class CustomJsonFormatter(JsonFormatter):
+    def add_fields(self, log_record, record, message_dict):
+        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
+        log_record['timestamp'] = datetime.now(UTC).isoformat()
+        log_record['level'] = record.levelname
+        log_record['logger'] = record.name
+        # Add request_id if available
+        request_id = request_id_context.get()
+        if request_id:
+            log_record['request_id'] = request_id
+
+# Setup JSON logging
+log_handler = logging.StreamHandler()
+formatter = CustomJsonFormatter('%(timestamp)s %(level)s %(name)s %(message)s')
+log_handler.setFormatter(formatter)
+
 logger = logging.getLogger(__name__)
+logger.addHandler(log_handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
 app = FastAPI(
     title="DevOps Assessment API",
     description="Demo application for DevOps technical assessment",
     version="1.0.0"
 )
+
+# Request ID middleware for distributed tracing
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Add unique request ID to each request for tracing"""
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    request_id_context.set(request_id)
+
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 # Prometheus metrics
 Instrumentator().instrument(app).expose(app)
@@ -53,7 +85,7 @@ async def health_check():
     """Health check endpoint for k8s probes"""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "service": "devops-assessment-api"
     }
 
