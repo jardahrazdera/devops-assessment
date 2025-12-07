@@ -112,6 +112,11 @@ echo -e "${BLUE}  - Creating namespace...${NC}"
 kubectl apply -f k8s/namespace.yaml
 sleep 2
 
+# Apply secrets first
+echo -e "${BLUE}  - Applying Secrets...${NC}"
+kubectl apply -f k8s/postgres-secret.yaml
+kubectl apply -f k8s/app-secret.yaml
+
 # Apply remaining resources
 echo -e "${BLUE}  - Applying ConfigMap...${NC}"
 kubectl apply -f k8s/configmap.yaml
