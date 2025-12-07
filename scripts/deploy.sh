@@ -8,14 +8,33 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Parse arguments
+IMAGE_TAG="latest"
+INSTALL_ARGOCD=false
+
+for arg in "$@"; do
+  case $arg in
+    --argocd)
+      INSTALL_ARGOCD=true
+      shift
+      ;;
+    *)
+      IMAGE_TAG="$arg"
+      shift
+      ;;
+  esac
+done
+
 # Configuration
 IMAGE_NAME="devops-assessment"
-IMAGE_TAG="${1:-latest}"
 NAMESPACE="devops-assessment"
 CLUSTER_NAME="devops-cluster"
 
 echo -e "${GREEN}=== DevOps Assessment Deployment Script ===${NC}"
 echo -e "${BLUE}Image: ${IMAGE_NAME}:${IMAGE_TAG}${NC}"
+if [ "$INSTALL_ARGOCD" = true ]; then
+    echo -e "${BLUE}ArgoCD: Enabled${NC}"
+fi
 echo ""
 
 # Step 0: Check/Create k3d cluster
@@ -27,6 +46,7 @@ if command -v k3d &> /dev/null; then
             -p "30080:30080@loadbalancer" \
             -p "30090:30090@loadbalancer" \
             -p "30030:30030@loadbalancer" \
+            -p "30081:30081@loadbalancer" \
             --wait
         echo -e "${GREEN}✓ k3d cluster created${NC}"
     else
@@ -121,6 +141,32 @@ kubectl apply -f k8s/monitoring/grafana-service.yaml
 
 echo -e "${GREEN}✓ All resources deployed${NC}"
 
+# Optional: Install ArgoCD
+if [ "$INSTALL_ARGOCD" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Installing ArgoCD...${NC}"
+
+    # Create ArgoCD namespace and install
+    echo -e "${BLUE}  - Creating argocd namespace...${NC}"
+    kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+    echo -e "${BLUE}  - Installing ArgoCD manifests...${NC}"
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+    echo -e "${BLUE}  - Waiting for ArgoCD to be ready...${NC}"
+    kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+
+    # Patch ArgoCD server to use NodePort
+    echo -e "${BLUE}  - Exposing ArgoCD server on NodePort 30081...${NC}"
+    kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort","ports":[{"port":443,"targetPort":8080,"nodePort":30081}]}}'
+
+    # Deploy ArgoCD Application
+    echo -e "${BLUE}  - Deploying ArgoCD application...${NC}"
+    kubectl apply -f argocd/application.yaml
+
+    echo -e "${GREEN}✓ ArgoCD installed and configured${NC}"
+fi
+
 # Step 6: Wait for rollout
 echo -e "${YELLOW}[6/6] Waiting for deployment rollout...${NC}"
 if kubectl rollout status deployment/devops-app -n ${NAMESPACE} --timeout=120s; then
@@ -149,6 +195,13 @@ echo -e "${GREEN}Access monitoring:${NC}"
 echo "  Prometheus:   http://localhost:30090"
 echo "  Grafana:      http://localhost:30030 (admin/admin)"
 echo ""
+if [ "$INSTALL_ARGOCD" = true ]; then
+    echo -e "${GREEN}Access ArgoCD:${NC}"
+    echo "  ArgoCD UI:    http://localhost:30081"
+    echo "  Username:     admin"
+    echo "  Password:     kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+    echo ""
+fi
 echo -e "${GREEN}Useful commands:${NC}"
 echo "  App logs:    kubectl logs -n ${NAMESPACE} -l app=devops-app -f"
 echo "  All pods:    kubectl get pods -A"
