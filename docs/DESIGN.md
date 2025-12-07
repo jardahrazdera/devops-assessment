@@ -119,6 +119,23 @@ This document explains the architectural choices, trade-offs, and design decisio
 
 ---
 
+### Why `python:3.11-slim` (vs Alpine)?
+
+**Decision:** Use `python:3.11-slim` as the base image for the application.
+
+**Rationale:**
+- **Compatibility:** `python-slim` images are based on Debian, offering broader compatibility with Python packages that may have C extensions. Alpine, using musl libc, can sometimes lead to runtime issues or require recompilation of certain packages.
+- **Image Size:** While Alpine is generally smaller, `python:3.11-slim` still provides a significantly reduced image size compared to full Debian images, and the multi-stage build further optimizes this.
+- **Maintainability:** Debian-based images often have more straightforward package management and troubleshooting due to wider community support.
+
+**Trade-offs:**
+- ✅ Broader package compatibility, reducing potential runtime errors.
+- ✅ Good balance between image size and compatibility.
+- ❌ Slightly larger image size compared to Alpine (though offset by multi-stage build).
+- ❌ Alpine was specifically recommended in the requirements, making this a documented deviation.
+
+---
+
 ### Why Prometheus + Grafana?
 
 **Decision:** Use Prometheus for metrics and Grafana for visualization.
