@@ -172,6 +172,43 @@ docker-compose up --build
 - ✅ Automated testing
 - ✅ Comprehensive documentation
 
+## 🔄 CI/CD Pipeline
+
+The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automates:
+
+1. **Testing** - Runs pytest with coverage on every push
+2. **Building** - Creates Docker image with commit SHA tagging
+3. **Security Scanning** - Runs Trivy vulnerability scanner
+4. **Deployment** - Simulated (see note below)
+
+### ⚠️ Important Note: Deployment Simulation
+
+The GitHub Actions pipeline **simulates** deployment rather than performing actual Kubernetes deployment because:
+
+- **Local-only environment** - This assessment runs on k3d (local Kubernetes), not a public cluster
+- **No registry access** - GitHub Actions cannot push to your local Docker daemon
+- **Credential requirements** - Pushing to public registries (GHCR/DockerHub) requires transferable credentials
+- **GitOps architecture** - ArgoCD handles actual deployment by watching the repository
+
+### How to Deploy Locally
+
+For actual deployment to your local k3d cluster, use:
+
+```bash
+./scripts/deploy.sh latest --argocd
+```
+
+### Production CI/CD Workflow
+
+In a real production environment, the GitHub Actions pipeline would:
+
+1. Push Docker image to container registry (GHCR/ECR/DockerHub) with commit SHA tag
+2. Update `k8s/deployment.yaml` with new image reference
+3. Commit the manifest change back to the repository
+4. ArgoCD automatically detects the change and syncs to cluster
+
+This maintains GitOps principles where Git is the single source of truth.
+
 ## 🛠️ Local Development
 
 ### Run with Docker

@@ -87,6 +87,16 @@ jobs:
         format: 'table'
         exit-code: '0'
 
+  # Note: Deployment is simulated because:
+  # 1. This is a local-only assessment (no public Kubernetes cluster)
+  # 2. GitHub Actions cannot access local k3d clusters
+  # 3. Pushing to public registries (GHCR/DockerHub) requires credentials
+  # 4. ArgoCD GitOps handles actual deployment in the local k3d cluster
+  #
+  # In production, this job would:
+  # - Push image to container registry (GHCR/ECR/DockerHub)
+  # - Update k8s/deployment.yaml with new image tag
+  # - Commit change to trigger ArgoCD auto-sync
   deploy:
     name: Deploy to K8s (simulation)
     needs: [test, build, security-scan]
@@ -99,6 +109,13 @@ jobs:
 
     - name: Simulate deployment
       run: |
-        echo "Deployment would happen here"
-        echo "In real scenario: kubectl apply -f k8s/"
-        echo "ArgoCD would sync the application automatically"
+        echo "✓ Tests passed"
+        echo "✓ Image built and scanned"
+        echo ""
+        echo "In production, this step would:"
+        echo "  1. Push image to registry with commit SHA tag"
+        echo "  2. Update k8s/deployment.yaml with new image"
+        echo "  3. Commit manifest change"
+        echo "  4. ArgoCD would auto-sync to cluster"
+        echo ""
+        echo "For local deployment, use: ./scripts/deploy.sh"
