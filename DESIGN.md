@@ -221,19 +221,62 @@ This document explains the architectural choices, trade-offs, and design decisio
 
 ## What Would Change With More Time
 
-### 1. Secret Management
+### 1. Secret Management ✅ Implemented
 
-**Current:** Database credentials in ConfigMap (plain text)
+**Current Implementation:**
 
-**Improvement:** Implement proper secret management:
-- **Sealed Secrets**: Encrypted secrets in Git
-- **External Secrets Operator**: Sync from Vault/AWS Secrets Manager
-- **SOPS**: Encrypted YAML files
+**Kubernetes:**
+- **Kubernetes Secrets**: Separated from ConfigMaps
+  - `postgres-secret.yaml`: PostgreSQL credentials (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+  - `app-secret.yaml`: Application secrets (DATABASE_URL, REDIS_URL with credentials)
+- **ConfigMaps**: Only non-sensitive configuration (log_level, environment)
+- **Separation of concerns**: Secrets mounted as environment variables via `secretKeyRef`
 
-**Why not now?**
-- Assessment focuses on DevOps fundamentals
-- Proper secret management requires external infrastructure
-- Complexity vs demo value trade-off
+**Docker Compose:**
+- **.env file**: All sensitive values in gitignored `.env` file
+- **.env.example**: Template committed to repository
+- **Environment variable substitution**: `${POSTGRES_PASSWORD}` syntax in docker-compose.yml
+
+**Security Practices:**
+- ✅ Secrets separated from application configuration
+- ✅ .env files gitignored (not committed)
+- ✅ .env.example provides template without actual credentials
+- ✅ Kubernetes Secrets use base64 encoding (K8s standard)
+- ⚠️ Demo credentials committed for assessment purposes (documented in .gitignore)
+
+**Production Improvements:**
+
+For production environments, implement encrypted secret management:
+
+1. **Sealed Secrets** (Bitnami)
+   - Encrypt secrets with cluster public key
+   - Commit encrypted SealedSecret resources to Git
+   - Controller decrypts in-cluster only
+   - GitOps-friendly, secrets encrypted at rest in Git
+
+2. **External Secrets Operator**
+   - Sync from external secret stores (Vault, AWS Secrets Manager, Azure Key Vault)
+   - Secrets managed outside cluster
+   - Automatic rotation support
+   - Centralized secret management across clusters
+
+3. **SOPS (Secrets Operations)**
+   - Encrypt YAML files with PGP/KMS
+   - Partial encryption (only secret values, not keys)
+   - Works with existing Git workflows
+   - Cloud provider KMS integration
+
+4. **Vault Integration**
+   - HashiCorp Vault as central secret store
+   - Dynamic secret generation
+   - Lease management and rotation
+   - Audit logging
+
+**Why Demo Approach:**
+- Assessment requires working solution without external dependencies
+- Demonstrates understanding of secret separation
+- Shows K8s Secret resource usage
+- Documents production path without requiring Vault/KMS setup
 
 ---
 
