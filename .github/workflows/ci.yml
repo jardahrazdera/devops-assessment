@@ -3,12 +3,64 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, master, develop ]
+    paths:
+      - 'src/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'k8s/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'k8s/**'
+      - '.github/workflows/ci.yml'
 
 jobs:
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff
+
+    - name: Run linter
+      run: |
+        ruff check src/
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for all branches
+
+    - name: Run Gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     name: Run Tests
+    needs: [lint, secret-scan]
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +76,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov
 
-    - name: Run tests
+    - name: Run tests with coverage threshold
       run: |
-        pytest src/tests/ -v --cov=src --cov-report=term-missing
+        pytest src/tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
 
   build:
     name: Build Docker Image
@@ -99,7 +150,7 @@ jobs:
   # - Commit change to trigger ArgoCD auto-sync
   deploy:
     name: Deploy to K8s (simulation)
-    needs: [test, build, security-scan]
+    needs: [lint, secret-scan, test, build, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
