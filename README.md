@@ -350,7 +350,7 @@ trivy config k8s/
 
 ```bash
 # See detailed instructions
-cat argocd/README.md
+cat docs/ARGOCD.md
 ```
 
 ### Deploy Application via ArgoCD
@@ -374,13 +374,17 @@ kubectl apply -f argocd/application.yaml
 ```
 devops-assessment/
 ├── README.md                          # Comprehensive documentation
-├── DESIGN.md                          # Design decisions & rationale
 ├── .gitignore                         # Python, Docker, IDE files
 ├── .env.example                       # Environment template
 ├── Dockerfile                         # Multi-stage FastAPI container
 ├── .dockerignore                      # Build optimization
 ├── docker-compose.yml                 # Local development stack
 ├── requirements.txt                   # Python dependencies
+│
+├── docs/                              # Documentation
+│   ├── DESIGN.md                      # Design decisions & rationale
+│   ├── ARGOCD.md                      # ArgoCD setup instructions
+│   └── SECRETS.md                     # Secret management guide
 │
 ├── src/                               # Application code
 │   ├── app.py                         # FastAPI application
@@ -393,8 +397,8 @@ devops-assessment/
 │   ├── deployment.yaml                # Application deployment
 │   ├── service.yaml                   # NodePort service
 │   ├── configmap.yaml                 # Non-sensitive config
-│   ├── app-secret.yaml                # Application secrets
-│   ├── postgres-secret.yaml           # PostgreSQL credentials
+│   ├── app-secret.yaml.template       # Application secrets template
+│   ├── postgres-secret.yaml.template  # PostgreSQL credentials template
 │   ├── postgres-deployment.yaml       # PostgreSQL deployment
 │   ├── postgres-service.yaml          # PostgreSQL service
 │   └── monitoring/                    # Monitoring stack
@@ -403,8 +407,7 @@ devops-assessment/
 │       └── grafana-*.yaml
 │
 ├── argocd/                            # GitOps configuration
-│   ├── application.yaml               # ArgoCD Application CRD
-│   └── README.md                      # ArgoCD setup instructions
+│   └── application.yaml               # ArgoCD Application CRD
 │
 ├── monitoring/                        # Observability stack
 │   ├── prometheus/
@@ -452,7 +455,7 @@ devops-assessment/
 - Template provided in `.env.example`
 - Copy and customize: `cp .env.example .env`
 
-**Production:** See [DESIGN.md](DESIGN.md) for production secret management (Sealed Secrets, Vault, etc.)
+**Production:** See [DESIGN.md](docs/DESIGN.md) for production secret management (Sealed Secrets, Vault, etc.)
 
 ### Kubernetes Resources
 
@@ -497,7 +500,7 @@ This project makes specific architectural choices to balance production-readines
 - **ArgoCD** - GitOps for declarative, automated deployments
 - **Prometheus + Grafana** - Industry-standard monitoring stack
 
-**For detailed rationale, trade-offs, and production improvements, see [DESIGN.md](DESIGN.md)**
+**For detailed rationale, trade-offs, and production improvements, see [DESIGN.md](docs/DESIGN.md)**
 
 ## 📝 License
 

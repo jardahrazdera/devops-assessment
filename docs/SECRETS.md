@@ -87,7 +87,7 @@ kubectl apply -f k8s/app-secret.yaml
    - Dynamic secret generation
    - Lease management and rotation
 
-See [DESIGN.md](../DESIGN.md) for detailed production secret management approaches.
+See [DESIGN.md](DESIGN.md) for detailed production secret management approaches.
 
 ## Required Tools
 
