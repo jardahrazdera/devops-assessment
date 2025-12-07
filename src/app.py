@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 import logging
 from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import os
 
 # Configure structured logging
 logging.basicConfig(
@@ -19,8 +22,31 @@ app = FastAPI(
 # Prometheus metrics
 Instrumentator().instrument(app).expose(app)
 
-# In-memory storage (simple but functional)
-data_store = []
+# Database connection
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+db_conn = None
+
+def get_db_connection():
+    """Get database connection with retry logic"""
+    global db_conn
+    if db_conn is None or db_conn.closed:
+        try:
+            db_conn = psycopg2.connect(DATABASE_URL)
+            logger.info("Connected to PostgreSQL database")
+            # Create table if it doesn't exist
+            with db_conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS data_items (
+                        id SERIAL PRIMARY KEY,
+                        content JSONB NOT NULL,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                db_conn.commit()
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+            db_conn = None
+    return db_conn
 
 @app.get("/health")
 async def health_check():
@@ -33,25 +59,48 @@ async def health_check():
 
 @app.get("/data")
 async def get_data():
-    """Retrieve all stored data"""
-    logger.info(f"GET /data - Retrieved {len(data_store)} items")
-    return {
-        "count": len(data_store),
-        "data": data_store
-    }
+    """Retrieve all stored data from PostgreSQL"""
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
+
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, content, timestamp FROM data_items ORDER BY id")
+            items = cur.fetchall()
+
+        logger.info(f"GET /data - Retrieved {len(items)} items")
+        return {
+            "count": len(items),
+            "data": [dict(item) for item in items]
+        }
+    except Exception as e:
+        logger.error(f"GET /data - Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/data")
 async def create_data(item: dict):
-    """Store new data item"""
+    """Store new data item in PostgreSQL"""
     if not item:
         raise HTTPException(status_code=400, detail="Empty data not allowed")
 
-    data_entry = {
-        "id": len(data_store) + 1,
-        "content": item,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    data_store.append(data_entry)
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
 
-    logger.info(f"POST /data - Created item with ID {data_entry['id']}")
-    return data_entry
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO data_items (content) VALUES (%s) RETURNING id, content, timestamp",
+                (psycopg2.extras.Json(item),)
+            )
+            result = cur.fetchone()
+            conn.commit()
+
+        data_entry = dict(result)
+        logger.info(f"POST /data - Created item with ID {data_entry['id']}")
+        return data_entry
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"POST /data - Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
