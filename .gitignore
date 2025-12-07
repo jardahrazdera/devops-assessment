@@ -56,9 +56,11 @@ htmlcov/
 .env.*.local
 *.env
 
-# Kubernetes secrets (NOTE: Demo secrets are committed for assessment purposes)
-# In production, these would be encrypted with Sealed Secrets or External Secrets
-# k8s/*secret*.yaml
+# Kubernetes secrets (never commit actual secrets)
+# Template files (*.yaml.template) are committed, actual secrets are generated during deployment
+k8s/*-secret.yaml
+k8s/app-secret.yaml
+k8s/postgres-secret.yaml
 
 # Monitoring data
 monitoring/prometheus/data/
