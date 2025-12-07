@@ -18,7 +18,8 @@ Fast iteration for development with Docker Compose:
 
 Complete integrated stack in k3d cluster:
 - Application with health probes and resource limits
-- PostgreSQL database
+- PostgreSQL database with persistent storage (PVC)
+- Redis caching
 - Kubernetes Secrets for credentials
 - Prometheus monitoring
 - Grafana dashboards
@@ -50,13 +51,15 @@ graph TB
             CM[ConfigMap]
             SECRET[Secrets]
             APP[FastAPI Pods]
-            PG[PostgreSQL<br/>Database]
+            PG[PostgreSQL<br/>Database + PVC]
+            REDIS[Redis<br/>Cache]
 
             CM --> DEPLOY
             SECRET --> DEPLOY
             DEPLOY --> APP
             SVC --> APP
             APP --> PG
+            APP --> REDIS
         end
 
         subgraph "Namespace: monitoring"
@@ -93,7 +96,8 @@ graph TB
 
 This deploys:
 - **k3d cluster** (with NodePort mappings)
-- **PostgreSQL** (persistent database)
+- **PostgreSQL** (persistent database with PVC)
+- **Redis** (caching layer)
 - **Application** (2 replicas, health probes, resource limits)
 - **Secrets** (Kubernetes Secrets for credentials)
 - **Prometheus** (metrics collection)
@@ -107,9 +111,19 @@ This deploys:
 | API Docs | http://localhost:30080/docs | - |
 | Prometheus | http://localhost:30090 | - |
 | Grafana | http://localhost:30030 | admin/admin |
+| ArgoCD UI | http://localhost:30081 | admin / (see below) |
 
-### Optional: Add ArgoCD for GitOps
+**ArgoCD Password:** `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d`
 
+### Deploy with ArgoCD for GitOps
+
+**Option 1: Automated (Recommended)**
+```bash
+./scripts/deploy.sh latest --argocd
+```
+This automatically installs ArgoCD, configures the application, and enables GitOps deployment.
+
+**Option 2: Manual Installation**
 ```bash
 # Install ArgoCD
 kubectl create namespace argocd
@@ -158,6 +172,7 @@ docker-compose -f monitoring/docker-compose.monitoring.yml up -d
 - Docker & Docker Compose
 - k3d (Kubernetes in Docker)
 - kubectl
+- envsubst (gettext package - for secret generation)
 - Git
 - Trivy (optional, for security scanning)
 
@@ -403,6 +418,9 @@ devops-assessment/
 │   ├── postgres-secret.yaml.template  # PostgreSQL credentials template
 │   ├── postgres-deployment.yaml       # PostgreSQL deployment
 │   ├── postgres-service.yaml          # PostgreSQL service
+│   ├── postgres-pvc.yaml              # PostgreSQL persistent volume claim
+│   ├── redis-deployment.yaml          # Redis deployment
+│   ├── redis-service.yaml             # Redis service
 │   └── monitoring/                    # Monitoring stack
 │       ├── namespace.yaml
 │       ├── prometheus-*.yaml
@@ -461,10 +479,17 @@ devops-assessment/
 
 ### Kubernetes Resources
 
-- **CPU Request**: 100m
-- **CPU Limit**: 200m (app), 500m (PostgreSQL)
-- **Memory Request**: 128Mi (app), 256Mi (PostgreSQL)
-- **Memory Limit**: 256Mi (app), 512Mi (PostgreSQL)
+**Application:**
+- CPU Request: 100m, Limit: 200m
+- Memory Request: 128Mi, Limit: 256Mi
+
+**PostgreSQL:**
+- CPU Request: 100m, Limit: 500m
+- Memory Request: 256Mi, Limit: 512Mi
+
+**Redis:**
+- CPU Request: 50m, Limit: 100m
+- Memory Request: 64Mi, Limit: 128Mi
 
 ## 🐛 Troubleshooting
 
