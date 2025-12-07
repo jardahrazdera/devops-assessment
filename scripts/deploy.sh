@@ -112,7 +112,27 @@ echo -e "${BLUE}  - Creating namespace...${NC}"
 kubectl apply -f k8s/namespace.yaml
 sleep 2
 
-# Apply secrets first
+# Generate secrets from templates if they don't exist
+echo -e "${BLUE}  - Generating secrets from templates...${NC}"
+
+# Set default credentials (override with environment variables)
+export POSTGRES_USER="${POSTGRES_USER:-devops}"
+export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-devops123}"
+export POSTGRES_DB="${POSTGRES_DB:-devopsdb}"
+
+# Generate secrets from templates using envsubst
+if command -v envsubst &> /dev/null; then
+    envsubst < k8s/postgres-secret.yaml.template > k8s/postgres-secret.yaml
+    envsubst < k8s/app-secret.yaml.template > k8s/app-secret.yaml
+    echo -e "${GREEN}✓ Secrets generated from templates${NC}"
+else
+    echo -e "${RED}✗ envsubst not found. Install gettext package${NC}"
+    echo -e "${YELLOW}  Ubuntu/Debian: sudo apt-get install gettext-base${NC}"
+    echo -e "${YELLOW}  macOS: brew install gettext${NC}"
+    exit 1
+fi
+
+# Apply secrets
 echo -e "${BLUE}  - Applying Secrets...${NC}"
 kubectl apply -f k8s/postgres-secret.yaml
 kubectl apply -f k8s/app-secret.yaml
