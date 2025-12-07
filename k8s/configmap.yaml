@@ -6,3 +6,5 @@ metadata:
 data:
   log_level: "info"
   environment: "development"
+  database_url: "postgresql://devops:devops123@postgres:5432/devopsdb"
+  redis_url: "redis://redis:6379"
