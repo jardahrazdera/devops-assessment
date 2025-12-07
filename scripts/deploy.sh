@@ -116,6 +116,13 @@ sleep 2
 echo -e "${BLUE}  - Applying ConfigMap...${NC}"
 kubectl apply -f k8s/configmap.yaml
 
+echo -e "${BLUE}  - Deploying PostgreSQL...${NC}"
+kubectl apply -f k8s/postgres-service.yaml
+kubectl apply -f k8s/postgres-deployment.yaml
+
+echo -e "${BLUE}  - Waiting for PostgreSQL to be ready...${NC}"
+kubectl wait --for=condition=ready pod -l app=postgres -n ${NAMESPACE} --timeout=120s
+
 echo -e "${BLUE}  - Applying Service...${NC}"
 kubectl apply -f k8s/service.yaml
 
