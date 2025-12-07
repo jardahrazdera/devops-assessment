@@ -9,13 +9,17 @@ This project offers **two deployment options**:
 ### Option 1: Docker Compose (Quick Local Development)
 
 Fast iteration for development with Docker Compose:
-- FastAPI application + Redis
+- FastAPI application
+- PostgreSQL database + Redis caching
+- Environment-based secrets (.env file)
 - Optional: Prometheus + Grafana monitoring (separate compose file)
 
 ### Option 2: Kubernetes (Full Production-like Environment)
 
 Complete integrated stack in k3d cluster:
 - Application with health probes and resource limits
+- PostgreSQL database
+- Kubernetes Secrets for credentials
 - Prometheus monitoring
 - Grafana dashboards
 - ArgoCD for GitOps
@@ -44,11 +48,15 @@ graph TB
             DEPLOY[Deployment<br/>2 Replicas]
             SVC[Service<br/>NodePort 30080]
             CM[ConfigMap]
+            SECRET[Secrets]
             APP[FastAPI Pods]
+            PG[PostgreSQL<br/>Database]
 
             CM --> DEPLOY
+            SECRET --> DEPLOY
             DEPLOY --> APP
             SVC --> APP
+            APP --> PG
         end
 
         subgraph "Namespace: monitoring"
@@ -84,10 +92,12 @@ graph TB
 ```
 
 This deploys:
+- **k3d cluster** (with NodePort mappings)
+- **PostgreSQL** (persistent database)
 - **Application** (2 replicas, health probes, resource limits)
+- **Secrets** (Kubernetes Secrets for credentials)
 - **Prometheus** (metrics collection)
 - **Grafana** (visualization dashboards)
-- **k3d cluster** (with NodePort mappings)
 
 ### Access URLs
 
@@ -121,7 +131,11 @@ kubectl apply -f argocd/application.yaml
 For quick local testing without Kubernetes:
 
 ```bash
-# Start application
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your credentials (file is gitignored)
+# Then start services
 docker-compose up -d
 
 # Optional: Start monitoring
@@ -132,6 +146,8 @@ docker-compose -f monitoring/docker-compose.monitoring.yml up -d
 - App: http://localhost:8000
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
+
+**Note:** The `.env` file contains database credentials and is gitignored. Use `.env.example` as a template.
 
 ---
 
@@ -162,8 +178,10 @@ docker-compose up --build
 ## 📋 Features
 
 - ✅ FastAPI REST API with health checks
+- ✅ PostgreSQL database with persistent storage
 - ✅ Multi-stage Docker builds
 - ✅ Kubernetes deployment with probes
+- ✅ Secret management (K8s Secrets + .env files)
 - ✅ CI/CD pipeline (GitHub Actions)
 - ✅ GitOps with ArgoCD
 - ✅ Security scanning with Trivy
@@ -356,7 +374,9 @@ kubectl apply -f argocd/application.yaml
 ```
 devops-assessment/
 ├── README.md                          # Comprehensive documentation
+├── DESIGN.md                          # Design decisions & rationale
 ├── .gitignore                         # Python, Docker, IDE files
+├── .env.example                       # Environment template
 ├── Dockerfile                         # Multi-stage FastAPI container
 ├── .dockerignore                      # Build optimization
 ├── docker-compose.yml                 # Local development stack
@@ -372,7 +392,15 @@ devops-assessment/
 │   ├── namespace.yaml                 # Namespace definition
 │   ├── deployment.yaml                # Application deployment
 │   ├── service.yaml                   # NodePort service
-│   └── configmap.yaml                 # Non-sensitive config
+│   ├── configmap.yaml                 # Non-sensitive config
+│   ├── app-secret.yaml                # Application secrets
+│   ├── postgres-secret.yaml           # PostgreSQL credentials
+│   ├── postgres-deployment.yaml       # PostgreSQL deployment
+│   ├── postgres-service.yaml          # PostgreSQL service
+│   └── monitoring/                    # Monitoring stack
+│       ├── namespace.yaml
+│       ├── prometheus-*.yaml
+│       └── grafana-*.yaml
 │
 ├── argocd/                            # GitOps configuration
 │   ├── application.yaml               # ArgoCD Application CRD
@@ -401,15 +429,37 @@ devops-assessment/
 
 ### Environment Variables
 
+**Non-sensitive (ConfigMap/Environment):**
 - `LOG_LEVEL` - Logging level (default: info)
 - `ENVIRONMENT` - Environment name (default: development)
+
+**Sensitive (Secrets/.env):**
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_URL` - Redis connection string
+- `POSTGRES_USER` - PostgreSQL username
+- `POSTGRES_PASSWORD` - PostgreSQL password
+- `POSTGRES_DB` - PostgreSQL database name
+
+### Secret Management
+
+**Kubernetes:**
+- Credentials stored in `Secrets` (not ConfigMaps)
+- Mounted as environment variables via `secretKeyRef`
+- Separate secrets per component (postgres-secret, app-secret)
+
+**Docker Compose:**
+- Use `.env` file for sensitive values (gitignored)
+- Template provided in `.env.example`
+- Copy and customize: `cp .env.example .env`
+
+**Production:** See [DESIGN.md](DESIGN.md) for production secret management (Sealed Secrets, Vault, etc.)
 
 ### Kubernetes Resources
 
 - **CPU Request**: 100m
-- **CPU Limit**: 200m
-- **Memory Request**: 128Mi
-- **Memory Limit**: 256Mi
+- **CPU Limit**: 200m (app), 500m (PostgreSQL)
+- **Memory Request**: 128Mi (app), 256Mi (PostgreSQL)
+- **Memory Limit**: 256Mi (app), 512Mi (PostgreSQL)
 
 ## 🐛 Troubleshooting
 
@@ -438,28 +488,16 @@ kubectl port-forward -n devops-assessment deployment/devops-app 8000:8000
 
 ## 🎯 Design Decisions
 
-### Why FastAPI?
-- Modern Python framework
-- Built-in async support
-- Automatic API documentation
-- Easy Prometheus integration
+This project makes specific architectural choices to balance production-readiness with local development simplicity:
 
-### Why k3d?
-- Lightweight Kubernetes
-- Fast startup
-- No cloud costs
-- Ideal for local development
+- **FastAPI** - Modern Python framework with async support and automatic API docs
+- **k3d** - Lightweight Kubernetes for local development (k3s in Docker)
+- **PostgreSQL** - ACID-compliant relational database for persistent data
+- **Kubernetes Secrets** - Proper separation of secrets from configuration
+- **ArgoCD** - GitOps for declarative, automated deployments
+- **Prometheus + Grafana** - Industry-standard monitoring stack
 
-### Why ArgoCD?
-- GitOps best practices
-- Declarative deployment
-- Auto-sync capabilities
-- Industry standard
-
-### Why Multi-Stage Docker Build?
-- Smaller final image
-- Build cache optimization
-- Security (no build tools in production)
+**For detailed rationale, trade-offs, and production improvements, see [DESIGN.md](DESIGN.md)**
 
 ## 📝 License
 
