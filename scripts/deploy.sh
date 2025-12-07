@@ -8,6 +8,62 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Pre-flight checks
+check_prerequisites() {
+    echo -e "${YELLOW}Checking prerequisites...${NC}"
+    local missing_tools=()
+
+    # Required tools
+    if ! command -v docker &> /dev/null; then
+        missing_tools+=("docker")
+    fi
+
+    if ! command -v kubectl &> /dev/null; then
+        missing_tools+=("kubectl")
+    fi
+
+    if ! command -v k3d &> /dev/null; then
+        missing_tools+=("k3d")
+    fi
+
+    if ! command -v envsubst &> /dev/null; then
+        missing_tools+=("envsubst (gettext)")
+    fi
+
+    # Check if Docker daemon is running
+    if command -v docker &> /dev/null; then
+        if ! docker info &> /dev/null; then
+            echo -e "${RED}✗ Docker daemon is not running${NC}"
+            echo -e "${YELLOW}  Start Docker and try again${NC}"
+            exit 1
+        fi
+    fi
+
+    # Report missing tools
+    if [ ${#missing_tools[@]} -ne 0 ]; then
+        echo -e "${RED}✗ Missing required tools:${NC}"
+        for tool in "${missing_tools[@]}"; do
+            echo -e "${RED}  - ${tool}${NC}"
+        done
+        echo ""
+        echo -e "${YELLOW}Installation instructions:${NC}"
+        echo -e "  Docker:    https://docs.docker.com/get-docker/"
+        echo -e "  kubectl:   https://kubernetes.io/docs/tasks/tools/"
+        echo -e "  k3d:       https://k3d.io/#installation"
+        echo -e "  envsubst:  sudo apt-get install gettext-base (Ubuntu/Debian)"
+        echo -e "             brew install gettext (macOS)"
+        exit 1
+    fi
+
+    # Optional tools (warnings only)
+    if ! command -v trivy &> /dev/null; then
+        echo -e "${YELLOW}⚠ Optional: trivy not found (security scanning will be skipped)${NC}"
+    fi
+
+    echo -e "${GREEN}✓ All required tools are available${NC}"
+    echo ""
+}
+
 # Parse arguments
 IMAGE_TAG="latest"
 INSTALL_ARGOCD=false
@@ -36,6 +92,9 @@ if [ "$INSTALL_ARGOCD" = true ]; then
     echo -e "${BLUE}ArgoCD: Enabled${NC}"
 fi
 echo ""
+
+# Run pre-flight checks
+check_prerequisites
 
 # Step 0: Check/Create k3d cluster
 echo -e "${YELLOW}[0/6] Checking k3d cluster...${NC}"
