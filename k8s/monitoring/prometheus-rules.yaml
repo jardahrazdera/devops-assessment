@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  alerts.yml: |
+    groups:
+    - name: devops-app-alerts
+      interval: 30s
+      rules:
+      # High error rate alert
+      - alert: HighHTTPErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (instance)
+            /
+            sum(rate(http_requests_total[5m])) by (instance)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: devops-app
+        annotations:
+          summary: "High HTTP error rate on {{ $labels.instance }}"
+          description: "Instance {{ $labels.instance }} has error rate of {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      # Application down alert
+      - alert: ApplicationDown
+        expr: up{job="devops-app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: devops-app
+        annotations:
+          summary: "Application instance {{ $labels.instance }} is down"
+          description: "The application instance {{ $labels.instance }} has been down for more than 2 minutes."
+
+      # High response time alert
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, instance)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: devops-app
+        annotations:
+          summary: "High response time on {{ $labels.instance }}"
+          description: "95th percentile response time is {{ $value }}s (threshold: 1s)"
+
+      # Low pod count alert
+      - alert: LowPodCount
+        expr: |
+          sum(up{job="devops-app"}) < 2
+        for: 3m
+        labels:
+          severity: warning
+          component: devops-app
+        annotations:
+          summary: "Less than 2 application pods running"
+          description: "Only {{ $value }} pod(s) available, expected 2 for high availability"
+
+      # High request rate (potential DoS)
+      - alert: HighRequestRate
+        expr: |
+          sum(rate(http_requests_total[1m])) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: devops-app
+        annotations:
+          summary: "Unusually high request rate detected"
+          description: "Request rate is {{ $value }} req/s, potential DoS attack or traffic spike"
+
+      # Database connection failures
+      - alert: DatabaseConnectionFailures
+        expr: |
+          sum(increase(http_requests_total{status="503"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "High number of database connection failures"
+          description: "{{ $value }} database connection failures in the last 5 minutes"
