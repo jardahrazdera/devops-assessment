@@ -197,6 +197,7 @@ docker-compose up --build
 - ✅ Redis caching (60s TTL, cache-aside pattern)
 - ✅ Multi-stage Docker builds
 - ✅ Kubernetes deployment with probes
+- ✅ Pod Disruption Budget for high availability
 - ✅ Secret management (K8s Secrets + .env files)
 - ✅ CI/CD pipeline (GitHub Actions)
 - ✅ GitOps with ArgoCD
@@ -413,6 +414,7 @@ devops-assessment/
 │   ├── namespace.yaml                 # Namespace definition
 │   ├── deployment.yaml                # Application deployment
 │   ├── service.yaml                   # NodePort service
+│   ├── pdb.yaml                       # Pod Disruption Budget
 │   ├── configmap.yaml                 # Non-sensitive config
 │   ├── app-secret.yaml.template       # Application secrets template
 │   ├── postgres-secret.yaml.template  # PostgreSQL credentials template

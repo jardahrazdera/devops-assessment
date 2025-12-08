@@ -190,6 +190,34 @@ This document explains the architectural choices, trade-offs, and design decisio
 
 ---
 
+### Pod Disruption Budget (PDB)
+
+**Decision:** Implement PDB with `minAvailable: 1` for the application.
+
+**Rationale:**
+- **Voluntary disruption protection** - Prevents simultaneous eviction of all pods during node drains, cluster upgrades, or maintenance
+- **High availability guarantee** - At least 1 pod remains running during planned disruptions
+- **Controlled rolling updates** - Kubernetes respects PDB during deployments
+- **Production-ready** - Standard practice for critical services
+
+**Configuration:**
+- `minAvailable: 1` - At least 1 pod must always be available
+- With 2 replicas, allows disruption of 1 pod at a time
+- Applies only to voluntary disruptions (not node failures or OOM kills)
+
+**What PDB protects against:**
+- `kubectl drain` operations
+- Cluster autoscaler evictions
+- Manual pod evictions
+- Preemption by higher-priority pods
+
+**What PDB does NOT protect against:**
+- Node crashes (involuntary disruptions)
+- Pod crashes or OOM kills
+- Application bugs
+
+---
+
 ### NodePort vs LoadBalancer
 
 **Decision:** Use NodePort for local development.
