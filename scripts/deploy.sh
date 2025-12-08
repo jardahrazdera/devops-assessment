@@ -230,6 +230,8 @@ sleep 2
 
 echo -e "${BLUE}  - Deploying Prometheus and Grafana...${NC}"
 kubectl apply -f k8s/monitoring/prometheus-configmap.yaml
+kubectl apply -f k8s/monitoring/prometheus-rules.yaml
+kubectl apply -f k8s/monitoring/prometheus-rbac.yaml
 kubectl apply -f k8s/monitoring/prometheus-deployment.yaml
 kubectl apply -f k8s/monitoring/prometheus-service.yaml
 kubectl apply -f k8s/monitoring/grafana-configmap.yaml
