@@ -53,7 +53,7 @@ data:
       # Low pod count alert
       - alert: LowPodCount
         expr: |
-          sum(up{job="devops-app"}) < 2
+          sum(up{job="kubernetes-pods",app="devops-app"}) < 2
         for: 3m
         labels:
           severity: warning
