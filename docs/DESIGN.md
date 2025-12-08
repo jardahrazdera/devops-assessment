@@ -67,6 +67,10 @@ This document explains the architectural choices, trade-offs, and design decisio
 - ❌ Adds complexity for simple deployments
 - ❌ ~500MB of images to install
 
+**Implementation:**
+- **Automated**: Use `./scripts/deploy.sh latest --argocd` for one-command deployment
+- **Manual**: Install ArgoCD separately and apply `argocd/application.yaml`
+
 **Alternatives considered:**
 - **Flux**: More lightweight but less visual
 - **Manual kubectl**: Simple but no GitOps benefits
@@ -83,15 +87,18 @@ This document explains the architectural choices, trade-offs, and design decisio
   - **JSONB support** - Flexible schema for /data endpoint
   - **Battle-tested** - Industry standard relational database
   - **Requirement alignment** - Assignment specified PostgreSQL/MySQL
+  - **Persistent storage** - Uses PersistentVolumeClaim (1Gi) for data durability
 
-- **Redis (preserved):**
-  - **High-performance caching** - In-memory key-value store
-  - **Separate concerns** - Cache layer vs persistent storage
-  - **Future-ready** - Can add caching, sessions, rate limiting
+- **Redis (implemented):**
+  - **High-performance caching** - In-memory key-value store with 60s TTL
+  - **Cache-aside pattern** - Fetch from DB on miss, populate cache
+  - **Cache invalidation** - Automatic invalidation on POST operations
+  - **Graceful degradation** - Application works even if Redis unavailable
 
 **Trade-offs:**
-- ✅ Production-realistic architecture
+- ✅ Production-realistic architecture with proper caching layer
 - ✅ Demonstrates understanding of persistence vs caching
+- ✅ Significantly improves read performance
 - ❌ More complex than in-memory storage
 - ❌ Requires database migrations in real projects
 
@@ -214,6 +221,8 @@ This document explains the architectural choices, trade-offs, and design decisio
   - Lightweight API, minimal processing
 - **PostgreSQL**: 100m-500m CPU, 256Mi-512Mi memory
   - Database needs more resources than app
+- **Redis**: 50m-100m CPU, 64Mi-128Mi memory
+  - Lightweight caching layer, in-memory operations
 - **Prometheus**: 100m-200m CPU, 256Mi-512Mi memory
   - Metrics storage grows over time
 
@@ -404,7 +413,7 @@ For production environments, implement encrypted secret management:
 **Improvement:**
 - **HTTP/2**: Enable for gRPC-like performance
 - **Connection pooling**: PostgreSQL connection pool (pgbouncer)
-- **Redis caching**: Actually implement cache layer
+- **Redis caching**: ✅ Implemented with cache-aside pattern, 60s TTL, cache invalidation
 - **CDN**: Static assets via CloudFront/Cloudflare
 - **Horizontal Pod Autoscaling**: Scale based on CPU/memory/custom metrics
 
@@ -427,4 +436,4 @@ The "What Would Change" section shows awareness of production requirements while
 
 ---
 
-**Last Updated:** 2025-12-07
+**Last Updated:** 2025-12-08
