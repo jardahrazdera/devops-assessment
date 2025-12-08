@@ -97,32 +97,43 @@ data:
           },
           {
             "id": 4,
-            "title": "Active Requests",
+            "title": "Error Rate (%)",
             "type": "gauge",
             "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
             "targets": [
               {
-                "expr": "http_requests_in_progress{job=\"devops-app\"}",
+                "expr": "sum(rate(http_requests_total{job=\"devops-app\",status=~\"4..|5..\"}[5m])) / sum(rate(http_requests_total{job=\"devops-app\"}[5m])) * 100",
                 "refId": "A"
               }
             ],
             "options": {
-              "showThresholdLabels": false,
-              "showThresholdMarkers": true
+              "showThresholdLabels": true,
+              "showThresholdMarkers": true,
+              "text": {}
             },
             "fieldConfig": {
               "defaults": {
                 "min": 0,
                 "max": 100,
+                "unit": "percent",
                 "color": {"mode": "thresholds"},
                 "thresholds": {
                   "mode": "absolute",
                   "steps": [
-                    {"value": null, "color": "green"},
-                    {"value": 50, "color": "yellow"},
-                    {"value": 80, "color": "red"}
+                    {"value": 0, "color": "green"},
+                    {"value": 1, "color": "yellow"},
+                    {"value": 5, "color": "red"}
                   ]
-                }
+                },
+                "mappings": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {"text": "0", "color": "green"}
+                    }
+                  }
+                ]
               }
             }
           },
