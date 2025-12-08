@@ -9,6 +9,7 @@ This project offers **two deployment options**:
 ### Option 1: Docker Compose (Quick Local Development)
 
 Fast iteration for development with Docker Compose:
+
 - FastAPI application
 - PostgreSQL database + Redis caching
 - Environment-based secrets (.env file)
@@ -17,6 +18,7 @@ Fast iteration for development with Docker Compose:
 ### Option 2: Kubernetes (Full Production-like Environment)
 
 Complete integrated stack in k3d cluster:
+
 - Application with health probes and resource limits
 - PostgreSQL database with persistent storage (PVC)
 - Redis caching
@@ -44,7 +46,7 @@ graph TB
 
     subgraph "k3d Cluster"
         subgraph "Namespace: argocd"
-            ARGOCD[ArgoCD<br/>GitOps Controller]
+            ARGOCD[ArgoCD<br/>GitOps Controller<br/>NodePort 30081]
         end
 
         subgraph "Namespace: devops-assessment"
@@ -97,6 +99,7 @@ graph TB
 ```
 
 This deploys:
+
 - **k3d cluster** (with NodePort mappings)
 - **PostgreSQL** (persistent database with PVC)
 - **Redis** (caching layer)
@@ -109,23 +112,26 @@ This deploys:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Application | http://localhost:30080/health | - |
-| API Docs | http://localhost:30080/docs | - |
-| Prometheus | http://localhost:30090 | - |
-| Grafana | http://localhost:30030 | admin/admin |
-| ArgoCD UI | http://localhost:30081 | admin / (see below) |
+| Application | <http://localhost:30080/health> | - |
+| API Docs | <http://localhost:30080/docs> | - |
+| Prometheus | <http://localhost:30090> | - |
+| Grafana | <http://localhost:30030> | admin/admin |
+| ArgoCD UI | <http://localhost:30081> | admin / (see below) |
 
 **ArgoCD Password:** `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d`
 
 ### Deploy with ArgoCD for GitOps
 
 **Option 1: Automated (Recommended)**
+
 ```bash
 ./scripts/deploy.sh latest --argocd
 ```
+
 This automatically installs ArgoCD, configures the application, and enables GitOps deployment.
 
 **Option 2: Manual Installation**
+
 ```bash
 # Install ArgoCD
 kubectl create namespace argocd
@@ -136,6 +142,7 @@ kubectl apply -f argocd/application.yaml
 ```
 
 **ArgoCD provides:**
+
 - Automated Git-to-cluster sync
 - Self-healing (reverts manual changes)
 - Declarative deployments
@@ -159,9 +166,10 @@ docker-compose -f monitoring/docker-compose.monitoring.yml up -d
 ```
 
 **Access:**
-- App: http://localhost:8000
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
+
+- App: <http://localhost:8000>
+- Prometheus: <http://localhost:9090>
+- Grafana: <http://localhost:3000>
 
 **Note:** The `.env` file contains database credentials and is gitignored. Use `.env.example` as a template.
 
@@ -332,13 +340,14 @@ docker-compose -f monitoring/docker-compose.monitoring.yml up -d
 
 ### Access Dashboards
 
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Pre-configured Dashboard**: http://localhost:3000/d/devops-app-metrics
+- **Prometheus**: <http://localhost:9090>
+- **Grafana**: <http://localhost:3000> (admin/admin)
+- **Pre-configured Dashboard**: <http://localhost:3000/d/devops-app-metrics>
 
 ### Pre-configured Dashboard
 
 Application metrics dashboard includes:
+
 - Request Rate (req/sec) - Real-time request throughput
 - Response Time (p50/p95) - Latency percentiles
 - Total Requests - Cumulative request counter
@@ -458,10 +467,12 @@ devops-assessment/
 ### Environment Variables
 
 **Non-sensitive (ConfigMap/Environment):**
+
 - `LOG_LEVEL` - Logging level (default: info)
 - `ENVIRONMENT` - Environment name (default: development)
 
 **Sensitive (Secrets/.env):**
+
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string
 - `POSTGRES_USER` - PostgreSQL username
@@ -471,11 +482,13 @@ devops-assessment/
 ### Secret Management
 
 **Kubernetes:**
+
 - Credentials stored in `Secrets` (not ConfigMaps)
 - Mounted as environment variables via `secretKeyRef`
 - Separate secrets per component (postgres-secret, app-secret)
 
 **Docker Compose:**
+
 - Use `.env` file for sensitive values (gitignored)
 - Template provided in `.env.example`
 - Copy and customize: `cp .env.example .env`
@@ -485,14 +498,17 @@ devops-assessment/
 ### Kubernetes Resources
 
 **Application:**
+
 - CPU Request: 100m, Limit: 200m
 - Memory Request: 128Mi, Limit: 256Mi
 
 **PostgreSQL:**
+
 - CPU Request: 100m, Limit: 500m
 - Memory Request: 256Mi, Limit: 512Mi
 
 **Redis:**
+
 - CPU Request: 50m, Limit: 100m
 - Memory Request: 64Mi, Limit: 128Mi
 
@@ -501,18 +517,21 @@ devops-assessment/
 ### Common Issues
 
 **1. Pod not starting**
+
 ```bash
 kubectl describe pod -n devops-assessment
 kubectl logs -n devops-assessment -l app=devops-app
 ```
 
 **2. Image pull issues**
+
 ```bash
 # Re-import image to k3d
 k3d image import devops-assessment:latest -c devops-cluster
 ```
 
 **3. Service not accessible**
+
 ```bash
 # Check service
 kubectl get svc -n devops-assessment
@@ -541,6 +560,7 @@ This project is for assessment purposes.
 ## 👤 Author
 
 Jaroslav Hrazdera
-- Portfolio: https://jaroslav.tech
+
+- Portfolio: <https://jaroslav.tech>
 - GitHub: [@jardahrazdera](https://github.com/jardahrazdera)
 - LinkedIn: [jaroslavhrazdera](https://linkedin.com/in/jaroslavhrazdera)
