@@ -334,20 +334,20 @@ For production environments, implement encrypted secret management:
 
 ---
 
-### 2. Helm Charts
+### 2. Helm Charts ✅ Implemented (Templates)
 
-**Current:** Raw Kubernetes YAML manifests
+**Decision:** Provide Helm Charts alongside Raw Manifests but stick to Raw Manifests for the assessment demonstration.
 
-**Improvement:** Package as Helm chart:
-- **Templating**: Reusable across environments (dev/staging/prod)
-- **Values files**: Environment-specific configuration
-- **Dependency management**: Charts for PostgreSQL, Redis
-- **Release management**: Helm rollback, upgrade
+**Implementation:**
+- **Raw Manifests (`k8s/`)**: Used for the primary deployment to keep the assessment simple and explicit.
+- **Helm Chart (`charts/`)**: A complete Helm chart is provided in the `charts/` directory.
+  - **Templating**: Ready for multi-environment usage.
+  - **Structure**: Follows standard Helm best practices.
 
-**Why not now?**
-- YAML manifests demonstrate core Kubernetes understanding
-- Helm adds abstraction layer (good for showing intent)
-- Assessment asked for "manifests or Helm" - chose manifests for clarity
+**Why this approach?**
+- **Demonstrates Skill**: Including the chart proves knowledge of Helm packaging and templating.
+- **Avoids Complexity**: Wiring up a hybrid deployment script for a local assessment adds unnecessary overhead.
+- **Future-Proofing**: The project is ready to be migrated to Helm-only for production.
 
 ---
 

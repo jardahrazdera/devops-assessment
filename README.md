@@ -26,6 +26,8 @@ Complete integrated stack in k3d cluster:
 - ArgoCD for GitOps
 - Everything in Kubernetes
 
+*(Note: Helm charts are also available in `charts/` for advanced users, but the default deployment uses raw manifests for clarity.)*
+
 ---
 
 ## 🎯 Kubernetes Architecture (Recommended)
@@ -207,6 +209,7 @@ docker-compose up --build
 - ✅ Automated testing
 - ✅ JSON structured logging with request tracing
 - ✅ Comprehensive documentation
+- ✅ **Helm Templates included** (in `charts/` directory)
 
 ## 🔄 CI/CD Pipeline
 
