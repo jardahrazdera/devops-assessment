@@ -411,14 +411,22 @@ devops-assessment/
 ├── docker-compose.yml                 # Local development stack
 ├── requirements.txt                   # Python dependencies
 │
+├── charts/                            # Helm Charts
+│   └── devops-assessment/             # Main application chart
+│       ├── Chart.yaml                 # Chart metadata
+│       ├── values.yaml                # Default configuration values
+│       └── templates/                 # Kubernetes manifest templates
+│
 ├── docs/                              # Documentation
 │   ├── DESIGN.md                      # Design decisions & rationale
 │   ├── ARGOCD.md                      # ArgoCD setup instructions
 │   └── SECRETS.md                     # Secret management guide
 │
 ├── src/                               # Application code
+│   ├── __init__.py
 │   ├── app.py                         # FastAPI application
 │   └── tests/
+│       ├── __init__.py
 │       ├── test_api.py                # API tests
 │       └── test_health.py             # Health check tests
 │
