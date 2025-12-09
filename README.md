@@ -308,16 +308,36 @@ kubectl cluster-info
 
 ### Deploy Application
 
-```bash
-# Use automated script
-./scripts/deploy.sh latest
+**Recommended: Automated Script**
 
-# Or manual deployment
+```bash
+./scripts/deploy.sh latest
+```
+
+**Alternative: Manual Deployment**
+
+If you prefer to deploy manually, you must generate secrets and apply all manifests (including monitoring) in order:
+
+```bash
+# 1. Generate secrets from templates
+# (Ensure POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB are set, or defaults will be used)
+export POSTGRES_USER=${POSTGRES_USER:-devops}
+export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-devops123}
+export POSTGRES_DB=${POSTGRES_DB:-devopsdb}
+
+envsubst < k8s/postgres-secret.yaml.template > k8s/postgres-secret.yaml
+envsubst < k8s/app-secret.yaml.template > k8s/app-secret.yaml
+
+# 2. Deploy Application Stack (App, DB, Redis)
 kubectl apply -f k8s/
+
+# 3. Deploy Monitoring Stack (Prometheus, Grafana)
+# Important: Applies RBAC, ConfigMaps, and Deployments
+kubectl apply -f k8s/monitoring/
+```
 
 # Check deployment status
 kubectl get all -n devops-assessment
-```
 
 ### Access Application
 
