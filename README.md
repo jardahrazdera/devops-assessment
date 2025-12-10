@@ -36,19 +36,29 @@ Complete integrated stack in k3d cluster:
 
 ```mermaid
 graph TB
-    subgraph "GitHub"
+    %% --- Actors ---
+    DEV[Developer]
+    USER[User]
+
+    %% --- GitHub Platform Block ---
+    subgraph "GitHub Platform"
         REPO[GitHub Repository<br/>Source Code & Manifests]
-    end
-
-    subgraph "CI/CD"
         GHA[GitHub Actions<br/>Test, Build, Scan]
+
+        %% CI/CD Loop
+        REPO -->|Triggers| GHA
+        GHA -->|Status| REPO
     end
 
+    %% --- k3d Cluster Block ---
     subgraph "k3d Cluster"
+        
+        %% ArgoCD Namespace
         subgraph "Namespace: argocd"
-            ARGOCD[ArgoCD<br/>GitOps Controller<br/>NodePort 30081]
+            ARGOCD[ArgoCD<br/>GitOps Controller</br>NodePort 30081]
         end
 
+        %% Application Namespace
         subgraph "Namespace: devops-assessment"
             DEPLOY[Deployment<br/>2 Replicas]
             SVC[Service<br/>NodePort 30080]
@@ -58,33 +68,37 @@ graph TB
             PG[PostgreSQL<br/>Database + PVC]
             REDIS[Redis<br/>Cache]
 
-            CM --> DEPLOY
-            SECRET --> DEPLOY
+            %% Internal App Connections
+            CM & SECRET --> DEPLOY
             DEPLOY --> APP
             SVC --> APP
-            APP --> PG
-            APP --> REDIS
+            APP --> PG & REDIS
         end
 
+        %% Monitoring Namespace
         subgraph "Namespace: monitoring"
             PROM[Prometheus<br/>NodePort 30090]
             GRAFANA[Grafana<br/>NodePort 30030]
-
+            
             PROM --> GRAFANA
         end
     end
 
-    DEV[Developer] -->|git push| REPO
-    REPO -->|Triggers| GHA
-    GHA -->|Build & Test| REPO
+    %% --- Main Vertical Flow (The Spine) ---
+    DEV -->|git push| REPO
     REPO -->|Watches| ARGOCD
-    ARGOCD -->|Auto-deploys| DEPLOY
-    APP -->|Exposes /metrics| PROM
-    USER[User] -->|Access| SVC
+    ARGOCD -->|Syncs| DEPLOY
+
+    %% --- Secondary/Side Connections ---
+    APP -->|Metrics| PROM
+    
+    %% User access flows
+    USER -->|Access| SVC
     USER -->|Monitor| GRAFANA
 
+    %% --- Styling ---
     style REPO fill:#e1f5ff
-    style GHA fill:#fff4e1
+    style GHA fill:#fff4e1,stroke:#f57f17,stroke-width:2px
     style ARGOCD fill:#e8f5e9
     style DEPLOY fill:#f3e5f5
     style APP fill:#fce4ec
@@ -337,6 +351,7 @@ kubectl apply -f k8s/monitoring/
 ```
 
 # Check deployment status
+
 kubectl get all -n devops-assessment
 
 ### Access Application
