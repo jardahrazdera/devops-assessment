@@ -68,7 +68,7 @@ This document explains the architectural choices, trade-offs, and design decisio
 - ❌ ~500MB of images to install
 
 **Implementation:**
-- **Automated**: Use `./scripts/deploy.sh latest --argocd` for one-command deployment
+- **Automated**: Use `./scripts/deploy.sh --argocd` for one-command deployment
 - **Manual**: Install ArgoCD separately and apply `argocd/application.yaml`
 
 **Alternatives considered:**
@@ -140,6 +140,37 @@ This document explains the architectural choices, trade-offs, and design decisio
 - ✅ Good balance between image size and compatibility.
 - ❌ Slightly larger image size compared to Alpine (though offset by multi-stage build).
 - ❌ Alpine was specifically recommended in the requirements, making this a documented deviation.
+
+---
+
+### Why Hardcoded `latest` Tag (Local Development)?
+
+**Decision:** Use hardcoded `latest` tag for Docker images in local k3d deployments.
+
+**Rationale:**
+- **Simplicity** - Local development environment doesn't need version management
+- **Rapid iteration** - Rebuild and redeploy without tag coordination between script and manifests
+- **Single source of truth** - Image tag defined once in deployment manifests
+- **k3d context** - Local cluster with `imagePullPolicy: IfNotPresent` doesn't need remote registry
+
+**Trade-offs:**
+- ✅ Simplified deployment script (no parameter passing)
+- ✅ No manifest templating required (envsubst, Kustomize, Helm)
+- ✅ Faster local dev cycle
+- ❌ Not production-appropriate (see below)
+
+**Production considerations:**
+In real production environments, you would:
+- **Semantic versioning** - Use `v1.2.3` tags for releases
+- **SHA tags** - Immutable references like `sha-abc1234` for exact traceability
+- **Image promotion** - Move same image through dev → staging → prod
+- **Registry scanning** - Automated vulnerability scanning on tagged images
+- **Rollback capability** - Point to specific known-good versions
+
+The `latest` tag is appropriate here because:
+1. This is a **local assessment environment**, not production
+2. Images are built and loaded directly into k3d (no remote registry)
+3. Simplifies the evaluation workflow
 
 ---
 
