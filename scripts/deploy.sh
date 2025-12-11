@@ -8,6 +8,41 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Help function
+show_help() {
+    echo -e "${GREEN}=== DevOps Assessment Deployment Script ===${NC}"
+    echo ""
+    echo "Usage: $0 [OPTIONS] [IMAGE_TAG]"
+    echo ""
+    echo "Options:"
+    echo "  --argocd        Install and configure ArgoCD"
+    echo "  --help          Show this help message"
+    echo ""
+    echo "Arguments:"
+    echo "  IMAGE_TAG       Docker image tag (default: latest)"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Deploy with latest tag"
+    echo "  $0 --argocd           # Deploy with ArgoCD"
+    echo "  $0 v1.0.0             # Deploy with specific tag"
+    echo "  $0 --argocd v1.0.0    # Deploy with ArgoCD and specific tag"
+    echo ""
+    echo -e "${GREEN}Access endpoints after deployment:${NC}"
+    echo "  Application:  http://localhost:30080/health"
+    echo "  API Docs:     http://localhost:30080/docs"
+    echo "  Metrics:      http://localhost:30080/metrics"
+    echo "  Prometheus:   http://localhost:30090"
+    echo "  Grafana:      http://localhost:30030 (admin/admin)"
+    echo "  ArgoCD UI:    http://localhost:30081 (if --argocd enabled)"
+    echo ""
+    echo -e "${GREEN}Useful commands:${NC}"
+    echo "  App logs:     kubectl logs -n devops-assessment -l app=devops-app -f"
+    echo "  All pods:     kubectl get pods -A"
+    echo "  Port-forward: kubectl port-forward -n devops-assessment svc/devops-app-service 8080:80"
+    echo "  ArgoCD pass:  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+    exit 0
+}
+
 # Pre-flight checks
 check_prerequisites() {
     echo -e "${YELLOW}Checking prerequisites...${NC}"
@@ -70,6 +105,9 @@ INSTALL_ARGOCD=false
 
 for arg in "$@"; do
   case $arg in
+    --help|-h)
+      show_help
+      ;;
     --argocd)
       INSTALL_ARGOCD=true
       shift
