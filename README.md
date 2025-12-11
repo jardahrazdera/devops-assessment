@@ -112,6 +112,8 @@ graph TB
 ./scripts/deploy.sh
 ```
 
+> **Tip:** Run `./scripts/deploy.sh --help` to see all available options and access endpoints.
+
 This deploys:
 
 - **k3d cluster** (with NodePort mappings)
