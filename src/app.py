@@ -3,7 +3,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 import logging
 from datetime import datetime, UTC
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 import os
 import uuid
 import json
@@ -12,19 +12,19 @@ from pythonjsonlogger.json import JsonFormatter
 from contextvars import ContextVar
 
 # Context variable for request ID
-request_id_context: ContextVar[str] = ContextVar("request_id", default=None)
+request_id_context: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 # Configure JSON structured logging
 class CustomJsonFormatter(JsonFormatter):
-    def add_fields(self, log_record, record, message_dict):
-        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
-        log_record['timestamp'] = datetime.now(UTC).isoformat()
-        log_record['level'] = record.levelname
-        log_record['logger'] = record.name
+    def add_fields(self, log_data, record, message_dict):
+        super(CustomJsonFormatter, self).add_fields(log_data, record, message_dict)
+        log_data['timestamp'] = datetime.now(UTC).isoformat()
+        log_data['level'] = record.levelname
+        log_data['logger'] = record.name
         # Add request_id if available
         request_id = request_id_context.get()
         if request_id:
-            log_record['request_id'] = request_id
+            log_data['request_id'] = request_id
 
 # Setup JSON logging
 log_handler = logging.StreamHandler()
@@ -70,8 +70,9 @@ def get_redis_connection():
     if redis_client is None:
         try:
             redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-            redis_client.ping()
-            logger.info("Connected to Redis")
+            if redis_client is not None:
+                redis_client.ping()
+                logger.info("Connected to Redis")
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}")
             redis_client = None
@@ -170,10 +171,13 @@ async def create_data(item: dict):
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 "INSERT INTO data_items (content) VALUES (%s) RETURNING id, content, timestamp",
-                (psycopg2.extras.Json(item),)
+                (Json(item),)
             )
             result = cur.fetchone()
             conn.commit()
+
+        if result is None:
+            raise HTTPException(status_code=500, detail="Failed to create data item")
 
         # Invalidate cache after successful write
         redis_conn = get_redis_connection()
@@ -184,9 +188,8 @@ async def create_data(item: dict):
             except Exception as e:
                 logger.warning(f"Redis delete error: {e}")
 
-        data_entry = dict(result)
-        logger.info(f"POST /data - Created item with ID {data_entry['id']}")
-        return data_entry
+        logger.info(f"POST /data - Created item with ID {result['id']}")
+        return dict(result)
     except Exception as e:
         conn.rollback()
         logger.error(f"POST /data - Error: {e}")
