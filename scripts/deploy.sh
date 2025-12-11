@@ -152,12 +152,42 @@ fi
 # Step 4: Load image to k3d cluster
 echo -e "${YELLOW}[4/6] Loading image to k3d cluster...${NC}"
 if command -v k3d &> /dev/null; then
-    k3d image import ${IMAGE_NAME}:${IMAGE_TAG} -c ${CLUSTER_NAME}
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Image loaded to cluster${NC}"
-    else
-        echo -e "${RED}✗ Failed to load image to k3d cluster${NC}"
+    # Capture output to check for errors
+    IMPORT_OUTPUT=$(k3d image import ${IMAGE_NAME}:${IMAGE_TAG} -c ${CLUSTER_NAME} 2>&1)
+    IMPORT_EXIT_CODE=$?
+
+    # Check for error messages in output (k3d returns 0 even on some failures)
+    if echo "$IMPORT_OUTPUT" | grep -qi "ERRO"; then
+        echo -e "${RED}✗ k3d image import reported errors:${NC}"
+        echo "$IMPORT_OUTPUT"
         exit 1
+    fi
+
+    if [ $IMPORT_EXIT_CODE -ne 0 ]; then
+        echo -e "${RED}✗ Failed to load image to k3d cluster${NC}"
+        echo "$IMPORT_OUTPUT"
+        exit 1
+    fi
+
+    # Verify the image actually exists in the cluster
+    echo -e "${BLUE}  - Verifying image in cluster...${NC}"
+    if docker exec k3d-${CLUSTER_NAME}-server-0 crictl images | grep -q "${IMAGE_NAME}"; then
+        echo -e "${GREEN}✓ Image loaded and verified in cluster${NC}"
+    else
+        echo -e "${RED}✗ Image import reported success but image not found in cluster${NC}"
+        echo -e "${RED}This is a k3d issue. Retrying with direct method...${NC}"
+
+        # Retry once with verbose output
+        k3d image import ${IMAGE_NAME}:${IMAGE_TAG} -c ${CLUSTER_NAME}
+        sleep 2
+
+        # Final verification
+        if docker exec k3d-${CLUSTER_NAME}-server-0 crictl images | grep -q "${IMAGE_NAME}"; then
+            echo -e "${GREEN}✓ Image loaded on retry${NC}"
+        else
+            echo -e "${RED}✗ Image import failed after retry${NC}"
+            exit 1
+        fi
     fi
 else
     echo -e "${YELLOW}⚠ k3d not installed, skipping image import${NC}"
