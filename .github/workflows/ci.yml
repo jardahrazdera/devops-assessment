@@ -114,6 +114,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
@@ -123,7 +126,7 @@ jobs:
       run: docker load < app-image.tar
 
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.28.0
       with:
         image-ref: 'devops-assessment:latest'
         format: 'table'
@@ -131,7 +134,7 @@ jobs:
         severity: 'CRITICAL,HIGH'
 
     - name: Run Trivy config scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.28.0
       with:
         scan-type: 'config'
         scan-ref: '.'
