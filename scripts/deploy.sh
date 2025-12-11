@@ -12,20 +12,15 @@ NC='\033[0m' # No Color
 show_help() {
     echo -e "${GREEN}=== DevOps Assessment Deployment Script ===${NC}"
     echo ""
-    echo "Usage: $0 [OPTIONS] [IMAGE_TAG]"
+    echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  --argocd        Install and configure ArgoCD"
     echo "  --help          Show this help message"
     echo ""
-    echo "Arguments:"
-    echo "  IMAGE_TAG       Docker image tag (default: latest)"
-    echo ""
     echo "Examples:"
-    echo "  $0                    # Deploy with latest tag"
+    echo "  $0                    # Deploy application"
     echo "  $0 --argocd           # Deploy with ArgoCD"
-    echo "  $0 v1.0.0             # Deploy with specific tag"
-    echo "  $0 --argocd v1.0.0    # Deploy with ArgoCD and specific tag"
     echo ""
     echo -e "${GREEN}Access endpoints after deployment:${NC}"
     echo "  Application:  http://localhost:30080/health"
@@ -100,7 +95,6 @@ check_prerequisites() {
 }
 
 # Parse arguments
-IMAGE_TAG="latest"
 INSTALL_ARGOCD=false
 
 for arg in "$@"; do
@@ -113,14 +107,16 @@ for arg in "$@"; do
       shift
       ;;
     *)
-      IMAGE_TAG="$arg"
-      shift
+      echo -e "${RED}✗ Unknown argument: $arg${NC}"
+      echo ""
+      show_help
       ;;
   esac
 done
 
 # Configuration
 IMAGE_NAME="devops-assessment"
+IMAGE_TAG="latest"
 NAMESPACE="devops-assessment"
 CLUSTER_NAME="devops-cluster"
 

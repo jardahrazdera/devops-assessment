@@ -109,7 +109,7 @@ graph TB
 ### Deploy Everything with One Command
 
 ```bash
-./scripts/deploy.sh latest
+./scripts/deploy.sh
 ```
 
 This deploys:
@@ -139,7 +139,7 @@ This deploys:
 **Option 1: Automated (Recommended)**
 
 ```bash
-./scripts/deploy.sh latest --argocd
+./scripts/deploy.sh --argocd
 ```
 
 This automatically installs ArgoCD, configures the application, and enables GitOps deployment.
@@ -256,7 +256,7 @@ The GitHub Actions pipeline **simulates** deployment rather than performing actu
 For actual deployment to your local k3d cluster, use:
 
 ```bash
-./scripts/deploy.sh latest --argocd
+./scripts/deploy.sh --argocd
 ```
 
 ### Production CI/CD Workflow
@@ -325,7 +325,7 @@ kubectl cluster-info
 **Recommended: Automated Script**
 
 ```bash
-./scripts/deploy.sh latest
+./scripts/deploy.sh
 ```
 
 **Alternative: Manual Deployment**
